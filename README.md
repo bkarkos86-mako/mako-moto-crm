@@ -38,6 +38,45 @@ If the repo name ever changes, update `base` in `vite.config.js` to match (`/<re
 
 The Lead Scoring tab calls the Anthropic API directly from the browser. Add your API key once in that tab — it's stored only in `localStorage` on that device and is never sent anywhere except `api.anthropic.com`. Because it's a browser-side key, treat this as a single-user/internal tool: anyone with access to the device (or its localStorage) can read the key.
 
+## Locking the app down
+
+The site is hosted on public GitHub Pages (private-repo Pages needs a paid plan), so the frontend alone can't keep anyone out — the passcode screen only protects data if your Apps Script backend also checks it. Set this up once:
+
+1. Open your Apps Script project → the gear icon (**Project Settings**) → **Script Properties** → **Add script property**. Name: `ACCESS_KEY`, value: whatever passcode your team will use. Save.
+2. In the script editor, add this near the top (outside any function):
+
+   ```javascript
+   function checkAccessKey_(e) {
+     var required = PropertiesService.getScriptProperties().getProperty('ACCESS_KEY');
+     if (!required) return true; // no key configured yet — auth disabled
+     var provided = '';
+     if (e && e.parameter && e.parameter.key) {
+       provided = e.parameter.key;
+     } else if (e && e.postData && e.postData.contents) {
+       try {
+         provided = JSON.parse(e.postData.contents).key || '';
+       } catch (err) {}
+     }
+     return provided === required;
+   }
+
+   function unauthorizedResponse_() {
+     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'unauthorized' }))
+       .setMimeType(ContentService.MimeType.JSON);
+   }
+   ```
+
+3. As the very first line inside your existing `doGet(e)` and `doPost(e)` functions, add:
+
+   ```javascript
+   if (!checkAccessKey_(e)) return unauthorizedResponse_();
+   ```
+
+   Leave the rest of both functions untouched.
+4. **Deploy → Manage deployments → edit the existing deployment (pencil icon) → Version: New version → Deploy.** The `/exec` URL stays the same; this just pushes the new code live under it.
+
+Once that's live, the app will ask for the passcode on first load per device, remember it in that browser's `localStorage`, and send it with every request. Change the passcode any time by editing the `ACCESS_KEY` script property and redeploying — everyone with the old one gets locked out immediately.
+
 ## Backend contract
 
 - `GET <APPS_SCRIPT_URL>` → `{ leads: [...] }`
