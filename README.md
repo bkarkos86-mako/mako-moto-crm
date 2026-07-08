@@ -11,6 +11,16 @@ npm run dev
 
 Opens at `http://localhost:5173/mako-moto-crm/` (Vite serves under the `/mako-moto-crm/` base path so it matches the GitHub Pages URL).
 
+## Multi-device offline sync
+
+The backend only supports `save_all` (replace the whole leads list) — no per-lead endpoint. To let multiple phones capture different leads while offline without one device's sync wiping out another's, every save in `src/context/LeadsContext.jsx` does **fetch → merge → push** instead of pushing blindly:
+
+1. Fetch the server's current leads.
+2. Merge them with this device's local leads (`src/utils/merge.js`): any lead id only on one side is kept as-is; a lead edited on both sides keeps the newer `updatedAt` version, but contact log entries from both sides are unioned so neither device's notes get dropped.
+3. Push the merged result back.
+
+This means two phones adding different new leads offline both survive once each has synced. **Known limitation:** deletion doesn't survive a true cross-device race — there's no tombstone field (the backend's sheet has fixed columns, verified by testing that it silently drops unrecognized fields), so a lead deleted on one device can reappear if another device that still has it locally syncs afterward. In practice this only matters if someone deletes a lead during the same offline window another phone is also offline with a stale copy of it; avoid deleting leads mid-event and it's a non-issue.
+
 ## Deploying to GitHub Pages
 
 One-time setup:

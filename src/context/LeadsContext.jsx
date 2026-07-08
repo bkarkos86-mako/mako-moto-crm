@@ -1,11 +1,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { fetchLeads, saveAllLeads } from '../api.js';
 import { makeId } from '../utils/id.js';
+import { mergeLeadLists } from '../utils/merge.js';
 
 const LeadsContext = createContext(null);
 
 const CACHE_KEY = 'mm_leads_cache_v1';
 const PENDING_KEY = 'mm_leads_pending_v1';
+const EXCLUDE_KEY = 'mm_leads_pending_excludes_v1';
 
 function loadCache() {
   try {
@@ -24,37 +26,89 @@ function saveCache(leads) {
   }
 }
 
+function loadPendingExcludes() {
+  try {
+    const raw = localStorage.getItem(EXCLUDE_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function savePendingExcludes(set) {
+  try {
+    localStorage.setItem(EXCLUDE_KEY, JSON.stringify(Array.from(set)));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function LeadsProvider({ children }) {
   const [leads, setLeads] = useState(loadCache);
   const [status, setStatus] = useState('loading'); // loading | ready | offline
   const [syncing, setSyncing] = useState(false);
   const pendingRef = useRef(localStorage.getItem(PENDING_KEY) === '1');
+  // Ids explicitly deleted on this device that haven't been confirmed synced
+  // yet — a merge must exclude these even if the server still has them,
+  // otherwise a delete made while offline would get merged back in. See
+  // src/utils/merge.js for why this can't just be part of the merge itself.
+  const pendingExcludesRef = useRef(loadPendingExcludes());
 
-  const persist = useCallback(async (next) => {
-    setLeads(next);
-    saveCache(next);
-    setSyncing(true);
-    try {
-      await saveAllLeads(next);
-      pendingRef.current = false;
-      localStorage.removeItem(PENDING_KEY);
-      setStatus('ready');
-    } catch {
-      pendingRef.current = true;
-      localStorage.setItem(PENDING_KEY, '1');
-      setStatus('offline');
-    } finally {
-      setSyncing(false);
+  // Fetches the server's current leads, merges in whatever this device wants
+  // to save, applies any still-pending deletions, and pushes the result.
+  // Every save goes through this — not just offline recovery — so that two
+  // devices saving around the same time merge instead of one clobbering the
+  // other.
+  const syncNow = useCallback(async (candidateLeads) => {
+    const serverLeads = await fetchLeads();
+    let merged = mergeLeadLists(candidateLeads, serverLeads);
+    if (pendingExcludesRef.current.size) {
+      merged = merged.filter((l) => !pendingExcludesRef.current.has(l.id));
     }
+    await saveAllLeads(merged);
+    return merged;
   }, []);
+
+  const persist = useCallback(
+    async (next, options = {}) => {
+      setLeads(next);
+      saveCache(next);
+      if (options.excludeIds) {
+        for (const id of options.excludeIds) pendingExcludesRef.current.add(id);
+        savePendingExcludes(pendingExcludesRef.current);
+      }
+      setSyncing(true);
+      try {
+        const merged = await syncNow(next);
+        setLeads(merged);
+        saveCache(merged);
+        pendingRef.current = false;
+        pendingExcludesRef.current.clear();
+        localStorage.removeItem(PENDING_KEY);
+        savePendingExcludes(pendingExcludesRef.current);
+        setStatus('ready');
+      } catch {
+        pendingRef.current = true;
+        localStorage.setItem(PENDING_KEY, '1');
+        setStatus('offline');
+      } finally {
+        setSyncing(false);
+      }
+    },
+    [syncNow]
+  );
 
   const retryPending = useCallback(async () => {
     if (!pendingRef.current) return;
     setSyncing(true);
     try {
-      await saveAllLeads(leads);
+      const merged = await syncNow(leads);
+      setLeads(merged);
+      saveCache(merged);
       pendingRef.current = false;
+      pendingExcludesRef.current.clear();
       localStorage.removeItem(PENDING_KEY);
+      savePendingExcludes(pendingExcludesRef.current);
       setStatus('ready');
     } catch {
       setStatus('offline');
@@ -62,21 +116,23 @@ export function LeadsProvider({ children }) {
       setSyncing(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leads]);
+  }, [leads, syncNow]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (pendingRef.current) {
+        await retryPending();
+        return;
+      }
       try {
         const fresh = await fetchLeads();
         if (cancelled) return;
-        if (!pendingRef.current) {
-          setLeads(fresh);
-          saveCache(fresh);
-        }
+        setLeads(fresh);
+        saveCache(fresh);
         setStatus('ready');
       } catch {
-        if (!cancelled) setStatus(leads.length ? 'offline' : 'offline');
+        if (!cancelled) setStatus('offline');
       }
     })();
     return () => {
@@ -126,7 +182,10 @@ export function LeadsProvider({ children }) {
 
   const deleteLead = useCallback(
     (id) => {
-      persist(leads.filter((l) => l.id !== id));
+      persist(
+        leads.filter((l) => l.id !== id),
+        { excludeIds: new Set([id]) }
+      );
     },
     [leads, persist]
   );
