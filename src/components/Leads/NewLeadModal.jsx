@@ -81,6 +81,9 @@ export default function NewLeadModal({ onClose, onCreated }) {
           ))}
         </datalist>
       </div>
+      <p className="privacy-notice">
+        We'll only use this info to follow up about the inquiry — we won't share it or use it for anything else.
+      </p>
       <div className="modal-actions">
         <button type="button" className="btn btn-ghost" onClick={onClose}>
           Cancel

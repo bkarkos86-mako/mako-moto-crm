@@ -105,6 +105,10 @@ export default function MobileEventMode() {
           <label htmlFor="ev-note">Quick note</label>
           <textarea id="ev-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
+        <p className="privacy-notice">
+          We'll only use this info to follow up about your Mako Moto inquiry — we won't share it or use it for
+          anything else.
+        </p>
         <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={save} disabled={!canSave}>
           Save lead
         </button>

@@ -946,3 +946,10 @@ table.leads-table tr {
   color: var(--muted);
   font-size: 13px;
 }
+
+.privacy-notice {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0 0 14px;
+}
