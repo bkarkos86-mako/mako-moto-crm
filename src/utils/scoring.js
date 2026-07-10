@@ -1,18 +1,8 @@
 import { makeId } from './id.js';
+import { callClaude, parseJsonResponse } from './claude.js';
 
-export const CLAUDE_MODEL = 'claude-sonnet-4-6';
-const API_KEY_STORAGE = 'mm_claude_api_key';
 const HISTORY_KEY = 'mm_score_history';
 const HISTORY_LIMIT = 50;
-
-export function getApiKey() {
-  return localStorage.getItem(API_KEY_STORAGE) || '';
-}
-
-export function setApiKey(key) {
-  if (key) localStorage.setItem(API_KEY_STORAGE, key);
-  else localStorage.removeItem(API_KEY_STORAGE);
-}
 
 export function loadScoreHistory() {
   try {
@@ -52,42 +42,12 @@ Respond with ONLY a single JSON object, no markdown fences, no commentary, in ex
 }`;
 
 export async function scoreConversation(conversationText) {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    throw new Error('No Claude API key set. Add one in the Lead Scoring settings first.');
-  }
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: 1000,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: conversationText }],
-    }),
+  const text = await callClaude({
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: conversationText }],
+    maxTokens: 1000,
   });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Claude API error ${res.status}: ${body.slice(0, 300)}`);
-  }
-
-  const data = await res.json();
-  const text = (data.content || []).map((b) => b.text || '').join('').trim();
-  const jsonStr = text.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
-  let parsed;
-  try {
-    parsed = JSON.parse(jsonStr);
-  } catch {
-    throw new Error('Could not parse Claude response as JSON: ' + text.slice(0, 200));
-  }
-  return parsed;
+  return parseJsonResponse(text);
 }
 
 export function makeScoreRecord(conversationText, result, linkedLeadId, linkedLeadName) {

@@ -7,6 +7,7 @@ import LeadsList from './components/Leads/LeadsList.jsx';
 import LeadDetail from './components/Leads/LeadDetail.jsx';
 import LeadScoring from './components/Scoring/LeadScoring.jsx';
 import MobileEventMode from './components/MobileEvent/MobileEventMode.jsx';
+import SalesSimulator from './components/SalesSim/SalesSimulator.jsx';
 
 function getDefaultView() {
   return window.innerWidth < 600 ? 'event' : 'kanban';
@@ -24,6 +25,7 @@ export default function App() {
         {view === 'followup' && <FollowUpDashboard onOpenLead={setSelectedLeadId} />}
         {view === 'leads' && <LeadsList onOpenLead={setSelectedLeadId} />}
         {view === 'scoring' && <LeadScoring />}
+        {view === 'practice' && <SalesSimulator />}
         {view === 'event' && <MobileEventMode />}
       </main>
       <BottomNav view={view} setView={setView} />

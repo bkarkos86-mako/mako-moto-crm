@@ -7,6 +7,7 @@ const TABS = [
   { key: 'followup', label: 'Follow-ups' },
   { key: 'leads', label: 'All leads' },
   { key: 'scoring', label: 'Lead scoring' },
+  { key: 'practice', label: 'Practice' },
   { key: 'event', label: 'Quick add' },
 ];
 

@@ -1,13 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useLeads } from '../../context/LeadsContext.jsx';
-import {
-  addScoreToHistory,
-  getApiKey,
-  loadScoreHistory,
-  makeScoreRecord,
-  scoreConversation,
-  setApiKey,
-} from '../../utils/scoring.js';
+import { addScoreToHistory, loadScoreHistory, makeScoreRecord, scoreConversation } from '../../utils/scoring.js';
+import { getApiKey } from '../../utils/claude.js';
+import ApiKeySettings from '../common/ApiKeySettings.jsx';
 
 function ScoreResult({ result, leads, onLinked }) {
   const [linkedLeadId, setLinkedLeadId] = useState('');
@@ -68,7 +63,6 @@ function ScoreResult({ result, leads, onLinked }) {
 
 export default function LeadScoring() {
   const { leads } = useLeads();
-  const [apiKeyInput, setApiKeyInput] = useState(getApiKey());
   const [showSettings, setShowSettings] = useState(!getApiKey());
   const [conversation, setConversation] = useState('');
   const [result, setResult] = useState(null);
@@ -77,11 +71,6 @@ export default function LeadScoring() {
   const [history, setHistory] = useState(loadScoreHistory);
 
   const visibleHistory = useMemo(() => history.slice(0, 20), [history]);
-
-  const saveKey = () => {
-    setApiKey(apiKeyInput.trim());
-    setShowSettings(false);
-  };
 
   const run = async () => {
     if (!conversation.trim()) return;
@@ -109,27 +98,7 @@ export default function LeadScoring() {
         </button>
       </div>
 
-      {showSettings && (
-        <div className="score-result" style={{ marginBottom: 16 }}>
-          <div className="field">
-            <label htmlFor="claude-key">Claude API key</label>
-            <input
-              id="claude-key"
-              type="password"
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              placeholder="sk-ant-…"
-            />
-          </div>
-          <p className="hint">
-            Stored only in this browser's local storage. Calls go directly from your device to Anthropic's API —
-            do not share this device's storage or use a key with billing you don't control.
-          </p>
-          <button type="button" className="btn btn-primary" onClick={saveKey}>
-            Save key
-          </button>
-        </div>
-      )}
+      {showSettings && <ApiKeySettings onSaved={() => setShowSettings(false)} />}
 
       <div className="scoring-layout">
         <div>
