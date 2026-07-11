@@ -15,6 +15,7 @@ export default function MobileEventMode() {
   const { leads, addLead } = useLeads();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [fb, setFb] = useState('');
   const [model, setModel] = useState('');
   const [note, setNote] = useState('');
@@ -27,6 +28,7 @@ export default function MobileEventMode() {
   const reset = () => {
     setName('');
     setPhone('');
+    setEmail('');
     setFb('');
     setModel('');
     setNote('');
@@ -35,6 +37,7 @@ export default function MobileEventMode() {
   const save = () => {
     if (!canSave) return;
     const contactParts = [phone.trim()];
+    if (email.trim()) contactParts.push(email.trim());
     if (fb.trim()) contactParts.push(fb.trim());
     const lead = addLead({
       name: name.trim(),
@@ -84,6 +87,16 @@ export default function MobileEventMode() {
             inputMode="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="ev-email">Email (optional)</label>
+          <input
+            id="ev-email"
+            type="email"
+            inputMode="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div className="field">
