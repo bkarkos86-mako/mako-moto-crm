@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLeads } from '../../context/LeadsContext.jsx';
 import StageMover from '../common/StageMover.jsx';
+import FinancingToggle from '../common/FinancingToggle.jsx';
 import { MODELS } from '../../constants.js';
 
 export default function LeadDetail({ leadId, onClose }) {
@@ -125,6 +126,9 @@ export default function LeadDetail({ leadId, onClose }) {
 
         <div className="section-title">Stage</div>
         <StageMover lead={lead} variant="buttons" />
+
+        <div className="section-title">Interested in financing?</div>
+        <FinancingToggle value={lead.financing} onChange={(v) => updateLead(lead.id, { financing: v })} />
 
         <div className="section-title">Notes</div>
         <div className="field">

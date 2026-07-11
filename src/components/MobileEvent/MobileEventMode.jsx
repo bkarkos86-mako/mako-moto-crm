@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useLeads } from '../../context/LeadsContext.jsx';
 import { MODELS, DEFAULT_SALESPEOPLE } from '../../constants.js';
+import FinancingToggle from '../common/FinancingToggle.jsx';
 
 function isToday(dateStr) {
   if (!dateStr) return false;
@@ -18,6 +19,7 @@ export default function MobileEventMode() {
   const [email, setEmail] = useState('');
   const [fb, setFb] = useState('');
   const [model, setModel] = useState('');
+  const [financing, setFinancing] = useState(undefined);
   const [note, setNote] = useState('');
   const [savedLead, setSavedLead] = useState(null);
 
@@ -31,6 +33,7 @@ export default function MobileEventMode() {
     setEmail('');
     setFb('');
     setModel('');
+    setFinancing(undefined);
     setNote('');
   };
 
@@ -45,6 +48,7 @@ export default function MobileEventMode() {
       model,
       source: 'Event',
       salesperson: DEFAULT_SALESPEOPLE[0],
+      financing,
       notes: note.trim(),
     });
     setSavedLead(lead);
@@ -113,6 +117,10 @@ export default function MobileEventMode() {
               </option>
             ))}
           </select>
+        </div>
+        <div className="field">
+          <label>Interested in financing?</label>
+          <FinancingToggle value={financing} onChange={setFinancing} />
         </div>
         <div className="field">
           <label htmlFor="ev-note">Quick note</label>

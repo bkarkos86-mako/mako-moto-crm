@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import Modal from '../common/Modal.jsx';
 import { MODELS, DEFAULT_SOURCES, DEFAULT_SALESPEOPLE } from '../../constants.js';
 import { useLeads } from '../../context/LeadsContext.jsx';
+import FinancingToggle from '../common/FinancingToggle.jsx';
 
 export default function NewLeadModal({ onClose, onCreated }) {
   const { leads, addLead } = useLeads();
@@ -10,6 +11,7 @@ export default function NewLeadModal({ onClose, onCreated }) {
   const [model, setModel] = useState('');
   const [source, setSource] = useState('');
   const [salesperson, setSalesperson] = useState('');
+  const [financing, setFinancing] = useState(undefined);
 
   const sources = useMemo(() => {
     const existing = leads.map((l) => l.source).filter(Boolean);
@@ -30,6 +32,7 @@ export default function NewLeadModal({ onClose, onCreated }) {
       model,
       source,
       salesperson,
+      financing,
     });
     if (onCreated) onCreated(lead);
     onClose();
@@ -80,6 +83,10 @@ export default function NewLeadModal({ onClose, onCreated }) {
             <option key={s} value={s} />
           ))}
         </datalist>
+      </div>
+      <div className="field">
+        <label>Interested in financing?</label>
+        <FinancingToggle value={financing} onChange={setFinancing} />
       </div>
       <p className="privacy-notice">
         We'll only use this info to follow up about the inquiry — we won't share it or use it for anything else.

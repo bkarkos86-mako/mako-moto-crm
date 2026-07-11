@@ -6,6 +6,12 @@ function csvEscape(value) {
   return s;
 }
 
+function financingLabel(value) {
+  if (value === true) return 'Yes';
+  if (value === false) return 'No';
+  return '';
+}
+
 export function leadsToCsv(leads) {
   const headers = [
     'id',
@@ -16,6 +22,7 @@ export function leadsToCsv(leads) {
     'salesperson',
     'stage',
     'lostReason',
+    'financing',
     'notes',
     'lastContactLog',
     'createdAt',
@@ -33,6 +40,7 @@ export function leadsToCsv(leads) {
       lead.salesperson,
       lead.stage,
       lead.lostReason || '',
+      financingLabel(lead.financing),
       lead.notes || '',
       last,
       lead.createdAt,
