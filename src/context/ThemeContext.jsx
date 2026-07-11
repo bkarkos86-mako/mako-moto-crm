@@ -16,6 +16,12 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    // Tells the browser which scheme is actually active right now, on top
+    // of the static "light dark" meta tag — without this, some mobile
+    // browsers (notably Android Chrome's force-dark) auto-darken pages that
+    // don't explicitly report their current theme, making light mode look
+    // dark-tinted when the OS is set to dark.
+    document.documentElement.style.colorScheme = theme;
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f1117' : '#f4f5f7');
   }, [theme]);
