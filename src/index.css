@@ -1604,21 +1604,46 @@ table.leads-table tr {
   border-radius: 999px;
 }
 
-.whatsapp-link {
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.quick-action {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-  padding: 2px 10px;
-  background: rgba(61, 214, 140, 0.15);
-  color: var(--won);
-  border-radius: 999px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
+  min-height: 40px;
 }
-.whatsapp-link:hover {
-  background: rgba(61, 214, 140, 0.25);
+.quick-action.call {
+  background: rgba(0, 212, 170, 0.15);
+  color: var(--accent);
+}
+.quick-action.whatsapp {
+  background: rgba(61, 214, 140, 0.15);
+  color: var(--won);
+}
+.quick-action.viber {
+  background: rgba(122, 90, 248, 0.15);
+  color: #8c6fff;
+}
+.quick-action.email {
+  background: rgba(245, 166, 35, 0.15);
+  color: var(--warn);
+}
+.quick-action:hover {
+  filter: brightness(1.15);
+}
+@media (max-width: 599px) {
+  .quick-action {
+    min-height: 48px;
+    padding: 10px 16px;
+  }
 }
 
 .duplicate-warning {
