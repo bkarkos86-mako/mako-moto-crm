@@ -1,5 +1,5 @@
 export const BACKEND_URL =
-  'https://script.google.com/macros/s/AKfycby00MKnH2PYcu0LdlowV_O87nX_VZmLeqcZqvpWxU1uUwQaqOKd7cvobXbbxqAts7g/exec';
+  'https://script.google.com/macros/s/AKfycbyDXymQu1TDKr2bJlYlbsV-YTapmwYskhu98FZ91tFWaCPJaaNjJB8ztZ_GV54Ifb4/exec';
 
 export const MODELS = [
   'Wraith',
