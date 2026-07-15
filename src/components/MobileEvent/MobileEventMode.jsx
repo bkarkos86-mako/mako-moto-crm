@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useLeads } from '../../context/LeadsContext.jsx';
 import { MODELS, DEFAULT_SALESPEOPLE } from '../../constants.js';
 import FinancingToggle from '../common/FinancingToggle.jsx';
+import { findPossibleDuplicate } from '../../utils/duplicates.js';
 
 function isToday(dateStr) {
   if (!dateStr) return false;
@@ -22,6 +23,7 @@ export default function MobileEventMode() {
   const [financing, setFinancing] = useState(undefined);
   const [note, setNote] = useState('');
   const [savedLead, setSavedLead] = useState(null);
+  const [duplicate, setDuplicate] = useState(null);
 
   const capturedToday = useMemo(() => leads.filter((l) => isToday(l.createdAt)).length, [leads]);
 
@@ -37,14 +39,17 @@ export default function MobileEventMode() {
     setNote('');
   };
 
-  const save = () => {
-    if (!canSave) return;
+  const buildContact = () => {
     const contactParts = [phone.trim()];
     if (email.trim()) contactParts.push(email.trim());
     if (fb.trim()) contactParts.push(fb.trim());
+    return contactParts.join(' / ');
+  };
+
+  const doSave = () => {
     const lead = addLead({
       name: name.trim(),
-      contact: contactParts.join(' / '),
+      contact: buildContact(),
       model,
       source: 'Event',
       salesperson: DEFAULT_SALESPEOPLE[0],
@@ -52,7 +57,18 @@ export default function MobileEventMode() {
       notes: note.trim(),
     });
     setSavedLead(lead);
+    setDuplicate(null);
     reset();
+  };
+
+  const attemptSave = () => {
+    if (!canSave) return;
+    const match = findPossibleDuplicate(leads, { name: name.trim(), contact: buildContact() });
+    if (match) {
+      setDuplicate(match);
+      return;
+    }
+    doSave();
   };
 
   if (savedLead) {
@@ -130,9 +146,33 @@ export default function MobileEventMode() {
           We'll only use this info to follow up about your Mako Moto inquiry — we won't share it or use it for
           anything else.
         </p>
-        <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={save} disabled={!canSave}>
-          Save lead
-        </button>
+
+        {duplicate && (
+          <div className="duplicate-warning">
+            Possible duplicate: <strong>{duplicate.name || 'Unnamed'}</strong> ({duplicate.contact}) was already
+            added {new Date(duplicate.createdAt).toLocaleDateString()}.
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setDuplicate(null)}>
+                Go back
+              </button>
+              <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={doSave}>
+                Save anyway
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!duplicate && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ width: '100%' }}
+            onClick={attemptSave}
+            disabled={!canSave}
+          >
+            Save lead
+          </button>
+        )}
       </div>
     </div>
   );

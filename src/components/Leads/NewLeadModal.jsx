@@ -3,6 +3,7 @@ import Modal from '../common/Modal.jsx';
 import { MODELS, DEFAULT_SOURCES, DEFAULT_SALESPEOPLE } from '../../constants.js';
 import { useLeads } from '../../context/LeadsContext.jsx';
 import FinancingToggle from '../common/FinancingToggle.jsx';
+import { findPossibleDuplicate } from '../../utils/duplicates.js';
 
 export default function NewLeadModal({ onClose, onCreated }) {
   const { leads, addLead } = useLeads();
@@ -12,6 +13,7 @@ export default function NewLeadModal({ onClose, onCreated }) {
   const [source, setSource] = useState('');
   const [salesperson, setSalesperson] = useState('');
   const [financing, setFinancing] = useState(undefined);
+  const [duplicate, setDuplicate] = useState(null);
 
   const sources = useMemo(() => {
     const existing = leads.map((l) => l.source).filter(Boolean);
@@ -24,8 +26,7 @@ export default function NewLeadModal({ onClose, onCreated }) {
 
   const canSave = name.trim() && contact.trim();
 
-  const save = () => {
-    if (!canSave) return;
+  const doSave = () => {
     const lead = addLead({
       name: name.trim(),
       contact: contact.trim(),
@@ -36,6 +37,16 @@ export default function NewLeadModal({ onClose, onCreated }) {
     });
     if (onCreated) onCreated(lead);
     onClose();
+  };
+
+  const attemptSave = () => {
+    if (!canSave) return;
+    const match = findPossibleDuplicate(leads, { name: name.trim(), contact: contact.trim() });
+    if (match) {
+      setDuplicate(match);
+      return;
+    }
+    doSave();
   };
 
   return (
@@ -91,14 +102,32 @@ export default function NewLeadModal({ onClose, onCreated }) {
       <p className="privacy-notice">
         We'll only use this info to follow up about the inquiry — we won't share it or use it for anything else.
       </p>
-      <div className="modal-actions">
-        <button type="button" className="btn btn-ghost" onClick={onClose}>
-          Cancel
-        </button>
-        <button type="button" className="btn btn-primary" onClick={save} disabled={!canSave}>
-          Add lead
-        </button>
-      </div>
+
+      {duplicate && (
+        <div className="duplicate-warning">
+          Possible duplicate: <strong>{duplicate.name || 'Unnamed'}</strong> ({duplicate.contact}) was already
+          added {new Date(duplicate.createdAt).toLocaleDateString()}.
+          <div className="modal-actions" style={{ marginTop: 10 }}>
+            <button type="button" className="btn btn-ghost" onClick={() => setDuplicate(null)}>
+              Go back
+            </button>
+            <button type="button" className="btn btn-primary" onClick={doSave}>
+              Save anyway
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!duplicate && (
+        <div className="modal-actions">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className="btn btn-primary" onClick={attemptSave} disabled={!canSave}>
+            Add lead
+          </button>
+        </div>
+      )}
     </Modal>
   );
 }

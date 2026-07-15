@@ -7,6 +7,7 @@ const TABS = [
   { key: 'leads', label: 'Leads', icon: '👥' },
   { key: 'scoring', label: 'Score', icon: '🎯' },
   { key: 'practice', label: 'Practice', icon: '🗣️' },
+  { key: 'insights', label: 'Insights', icon: '📊' },
 ];
 
 export default function BottomNav({ view, setView }) {

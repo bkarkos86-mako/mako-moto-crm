@@ -8,6 +8,7 @@ import LeadDetail from './components/Leads/LeadDetail.jsx';
 import LeadScoring from './components/Scoring/LeadScoring.jsx';
 import MobileEventMode from './components/MobileEvent/MobileEventMode.jsx';
 import SalesSimulator from './components/SalesSim/SalesSimulator.jsx';
+import InsightsPage from './components/Insights/InsightsPage.jsx';
 
 function getDefaultView() {
   return window.innerWidth < 600 ? 'event' : 'kanban';
@@ -26,6 +27,7 @@ export default function App() {
         {view === 'leads' && <LeadsList onOpenLead={setSelectedLeadId} />}
         {view === 'scoring' && <LeadScoring />}
         {view === 'practice' && <SalesSimulator />}
+        {view === 'insights' && <InsightsPage />}
         {view === 'event' && <MobileEventMode />}
       </main>
       <BottomNav view={view} setView={setView} />

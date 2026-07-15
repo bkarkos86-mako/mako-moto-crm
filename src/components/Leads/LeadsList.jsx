@@ -10,6 +10,7 @@ export default function LeadsList({ onOpenLead }) {
   const [query, setQuery] = useState('');
   const [source, setSource] = useState('');
   const [salesperson, setSalesperson] = useState('');
+  const [financing, setFinancing] = useState('');
   const [showNewLead, setShowNewLead] = useState(false);
 
   const sources = useMemo(() => Array.from(new Set(leads.map((l) => l.source).filter(Boolean))).sort(), [leads]);
@@ -24,16 +25,22 @@ export default function LeadsList({ onOpenLead }) {
       .filter((l) => (source ? l.source === source : true))
       .filter((l) => (salesperson ? l.salesperson === salesperson : true))
       .filter((l) => {
+        if (financing === 'yes') return l.financing === true;
+        if (financing === 'no') return l.financing === false;
+        if (financing === 'unset') return l.financing !== true && l.financing !== false;
+        return true;
+      })
+      .filter((l) => {
         if (!q) return true;
         return (
           (l.name || '').toLowerCase().includes(q) ||
-          (l.contact || '').toLowerCase().includes(q) ||
+          String(l.contact ?? '').toLowerCase().includes(q) ||
           (l.model || '').toLowerCase().includes(q) ||
           (l.notes || '').toLowerCase().includes(q)
         );
       })
       .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
-  }, [leads, query, source, salesperson]);
+  }, [leads, query, source, salesperson, financing]);
 
   const exportCsv = () => {
     downloadCsv(`mako-moto-leads-${new Date().toISOString().slice(0, 10)}.csv`, leadsToCsv(leads));
@@ -75,6 +82,12 @@ export default function LeadsList({ onOpenLead }) {
               {s}
             </option>
           ))}
+        </select>
+        <select value={financing} onChange={(e) => setFinancing(e.target.value)}>
+          <option value="">Financing: All</option>
+          <option value="yes">Financing: Yes</option>
+          <option value="no">Financing: No</option>
+          <option value="unset">Financing: Not asked</option>
         </select>
       </div>
 

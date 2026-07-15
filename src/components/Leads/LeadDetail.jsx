@@ -3,6 +3,7 @@ import { useLeads } from '../../context/LeadsContext.jsx';
 import StageMover from '../common/StageMover.jsx';
 import FinancingToggle from '../common/FinancingToggle.jsx';
 import { MODELS } from '../../constants.js';
+import { getWhatsAppLink } from '../../utils/whatsapp.js';
 
 export default function LeadDetail({ leadId, onClose }) {
   const { leads, updateLead, deleteLead, addContactLogEntry } = useLeads();
@@ -109,6 +110,16 @@ export default function LeadDetail({ leadId, onClose }) {
               <h2>{lead.name || 'Unnamed lead'}</h2>
               <div className="contact">
                 {lead.contact} {lead.model ? `· ${lead.model}` : ''}
+                {getWhatsAppLink(lead.contact) && (
+                  <a
+                    href={getWhatsAppLink(lead.contact)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="whatsapp-link"
+                  >
+                    WhatsApp
+                  </a>
+                )}
               </div>
               <div className="contact">
                 {lead.source ? `Source: ${lead.source}` : ''} {lead.salesperson ? `· ${lead.salesperson}` : ''}
