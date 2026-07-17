@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { fetchLeads, saveAllLeads } from '../api.js';
+import { fetchLeads, saveAllLeads, ForbiddenDeleteError } from '../api.js';
 import { makeId } from '../utils/id.js';
 import { mergeLeadLists } from '../utils/merge.js';
+import { useUser } from './UserContext.jsx';
 
 const LeadsContext = createContext(null);
 
@@ -44,6 +45,7 @@ function savePendingExcludes(set) {
 }
 
 export function LeadsProvider({ children }) {
+  const { identify } = useUser();
   const [leads, setLeads] = useState(loadCache);
   const [status, setStatus] = useState('loading'); // loading | ready | offline
   const [syncing, setSyncing] = useState(false);
@@ -59,15 +61,27 @@ export function LeadsProvider({ children }) {
   // Every save goes through this — not just offline recovery — so that two
   // devices saving around the same time merge instead of one clobbering the
   // other.
-  const syncNow = useCallback(async (candidateLeads) => {
-    const serverLeads = await fetchLeads();
-    let merged = mergeLeadLists(candidateLeads, serverLeads);
-    if (pendingExcludesRef.current.size) {
-      merged = merged.filter((l) => !pendingExcludesRef.current.has(l.id));
-    }
-    await saveAllLeads(merged);
-    return merged;
-  }, []);
+  const syncNow = useCallback(
+    async (candidateLeads) => {
+      const fetched = await fetchLeads();
+      identify(fetched.user);
+      let merged = mergeLeadLists(candidateLeads, fetched.leads);
+      if (pendingExcludesRef.current.size) {
+        merged = merged.filter((l) => !pendingExcludesRef.current.has(l.id));
+      }
+      const saved = await saveAllLeads(merged);
+      identify(saved.user);
+      return merged;
+    },
+    [identify]
+  );
+
+  const clearPending = () => {
+    pendingRef.current = false;
+    pendingExcludesRef.current.clear();
+    localStorage.removeItem(PENDING_KEY);
+    savePendingExcludes(pendingExcludesRef.current);
+  };
 
   const persist = useCallback(
     async (next, options = {}) => {
@@ -82,20 +96,33 @@ export function LeadsProvider({ children }) {
         const merged = await syncNow(next);
         setLeads(merged);
         saveCache(merged);
-        pendingRef.current = false;
-        pendingExcludesRef.current.clear();
-        localStorage.removeItem(PENDING_KEY);
-        savePendingExcludes(pendingExcludesRef.current);
+        clearPending();
         setStatus('ready');
-      } catch {
-        pendingRef.current = true;
-        localStorage.setItem(PENDING_KEY, '1');
-        setStatus('offline');
+      } catch (err) {
+        if (err instanceof ForbiddenDeleteError) {
+          // Not a connectivity problem — retrying won't help. Discard the
+          // disallowed local delete and resync to the server's real state.
+          alert('Only admins can delete leads.');
+          clearPending();
+          try {
+            const fresh = await fetchLeads();
+            identify(fresh.user);
+            setLeads(fresh.leads);
+            saveCache(fresh.leads);
+            setStatus('ready');
+          } catch {
+            setStatus('offline');
+          }
+        } else {
+          pendingRef.current = true;
+          localStorage.setItem(PENDING_KEY, '1');
+          setStatus('offline');
+        }
       } finally {
         setSyncing(false);
       }
     },
-    [syncNow]
+    [syncNow, identify]
   );
 
   const retryPending = useCallback(async () => {
@@ -105,10 +132,7 @@ export function LeadsProvider({ children }) {
       const merged = await syncNow(leads);
       setLeads(merged);
       saveCache(merged);
-      pendingRef.current = false;
-      pendingExcludesRef.current.clear();
-      localStorage.removeItem(PENDING_KEY);
-      savePendingExcludes(pendingExcludesRef.current);
+      clearPending();
       setStatus('ready');
     } catch {
       setStatus('offline');
@@ -128,8 +152,9 @@ export function LeadsProvider({ children }) {
       try {
         const fresh = await fetchLeads();
         if (cancelled) return;
-        setLeads(fresh);
-        saveCache(fresh);
+        identify(fresh.user);
+        setLeads(fresh.leads);
+        saveCache(fresh.leads);
         setStatus('ready');
       } catch {
         if (!cancelled) setStatus('offline');

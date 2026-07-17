@@ -4,9 +4,12 @@ import StageMover from '../common/StageMover.jsx';
 import FinancingToggle from '../common/FinancingToggle.jsx';
 import { MODELS } from '../../constants.js';
 import QuickActions from '../common/QuickActions.jsx';
+import { useUser } from '../../context/UserContext.jsx';
 
 export default function LeadDetail({ leadId, onClose }) {
   const { leads, updateLead, deleteLead, addContactLogEntry } = useLeads();
+  const { currentUser } = useUser();
+  const isAdmin = currentUser?.role === 'admin';
   const lead = leads.find((l) => l.id === leadId);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(null);
@@ -171,9 +174,11 @@ export default function LeadDetail({ leadId, onClose }) {
               Edit
             </button>
           )}
-          <button type="button" className="btn btn-danger" onClick={handleDelete}>
-            Delete lead
-          </button>
+          {isAdmin && (
+            <button type="button" className="btn btn-danger" onClick={handleDelete}>
+              Delete lead
+            </button>
+          )}
         </div>
       </div>
     </div>

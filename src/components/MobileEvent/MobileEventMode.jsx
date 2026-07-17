@@ -3,6 +3,7 @@ import { useLeads } from '../../context/LeadsContext.jsx';
 import { MODELS, DEFAULT_SALESPEOPLE } from '../../constants.js';
 import FinancingToggle from '../common/FinancingToggle.jsx';
 import { findPossibleDuplicate } from '../../utils/duplicates.js';
+import { useUser } from '../../context/UserContext.jsx';
 
 function isToday(dateStr) {
   if (!dateStr) return false;
@@ -15,6 +16,7 @@ function isToday(dateStr) {
 
 export default function MobileEventMode() {
   const { leads, addLead } = useLeads();
+  const { currentUser } = useUser();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -52,7 +54,7 @@ export default function MobileEventMode() {
       contact: buildContact(),
       model,
       source: 'Event',
-      salesperson: DEFAULT_SALESPEOPLE[0],
+      salesperson: currentUser?.name || DEFAULT_SALESPEOPLE[0],
       financing,
       notes: note.trim(),
     });

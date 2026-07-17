@@ -4,14 +4,16 @@ import { MODELS, DEFAULT_SOURCES, DEFAULT_SALESPEOPLE } from '../../constants.js
 import { useLeads } from '../../context/LeadsContext.jsx';
 import FinancingToggle from '../common/FinancingToggle.jsx';
 import { findPossibleDuplicate } from '../../utils/duplicates.js';
+import { useUser } from '../../context/UserContext.jsx';
 
 export default function NewLeadModal({ onClose, onCreated }) {
   const { leads, addLead } = useLeads();
+  const { currentUser } = useUser();
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
   const [model, setModel] = useState('');
   const [source, setSource] = useState('');
-  const [salesperson, setSalesperson] = useState('');
+  const [salesperson, setSalesperson] = useState(currentUser?.name || '');
   const [financing, setFinancing] = useState(undefined);
   const [duplicate, setDuplicate] = useState(null);
 

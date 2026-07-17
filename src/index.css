@@ -1,9 +1,9 @@
 :root[data-theme='dark'] {
-  --bg: #0f1117;
-  --surface: #181c25;
-  --surface2: #1e2330;
+  --bg: #0a0d0c;
+  --surface: #141815;
+  --surface2: #1a201b;
   --text: #e8eaf0;
-  --muted: #7a8099;
+  --muted: #7d9089;
   --border: rgba(255, 255, 255, 0.08);
   --border2: rgba(255, 255, 255, 0.14);
 }
@@ -19,10 +19,13 @@
 }
 
 :root {
-  --accent: #00d4aa;
+  --accent: #14d97e;
+  --accent-deep: #0a3d24;
+  --metal: #9a9d97;
+  --metal-light: #c7cac4;
   --warn: #f5a623;
   --danger: #e24b4a;
-  --won: #3dd68c;
+  --won: #3ee88f;
   --radius: 12px;
   --radius-sm: 8px;
 }
@@ -209,6 +212,35 @@ label {
 }
 .sync-pill.offline .dot {
   background: var(--warn);
+}
+
+.user-pill {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--accent);
+  color: #06231d;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+@media (max-width: 599px) {
+  .user-pill {
+    min-height: unset;
+    padding: 6px 10px;
+  }
 }
 
 nav.tabs {

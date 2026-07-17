@@ -48,48 +48,23 @@ If the repo name ever changes, update `base` in `vite.config.js` to match (`/<re
 
 The Lead Scoring tab calls the Anthropic API directly from the browser. Add your API key once in that tab — it's stored only in `localStorage` on that device and is never sent anywhere except `api.anthropic.com`. Because it's a browser-side key, treat this as a single-user/internal tool: anyone with access to the device (or its localStorage) can read the key.
 
-## Locking the app down
+## Locking the app down: per-person PINs and roles
 
-The site is hosted on public GitHub Pages (private-repo Pages needs a paid plan), so the frontend alone can't keep anyone out — the passcode screen only protects data if your Apps Script backend also checks it. Set this up once:
+The site is hosted on public GitHub Pages (private-repo Pages needs a paid plan), so the frontend alone can't keep anyone out — the login screen only protects data if your Apps Script backend also checks it.
 
-1. Open your Apps Script project → the gear icon (**Project Settings**) → **Script Properties** → **Add script property**. Name: `ACCESS_KEY`, value: whatever passcode your team will use. Save.
-2. In the script editor, add this near the top (outside any function):
+Each salesperson has their own PIN and a role (`admin` or `sales`), looked up from a **Team** sheet tab — not a single shared passcode. Only `admin` can delete leads; this is enforced **server-side** (the backend detects when a save would remove an existing lead and rejects it for non-admins), not just by hiding the button in the UI.
 
-   ```javascript
-   function checkAccessKey_(e) {
-     var required = PropertiesService.getScriptProperties().getProperty('ACCESS_KEY');
-     if (!required) return true; // no key configured yet — auth disabled
-     var provided = '';
-     if (e && e.parameter && e.parameter.key) {
-       provided = e.parameter.key;
-     } else if (e && e.postData && e.postData.contents) {
-       try {
-         provided = JSON.parse(e.postData.contents).key || '';
-       } catch (err) {}
-     }
-     return provided === required;
-   }
+Setup:
 
-   function unauthorizedResponse_() {
-     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'unauthorized' }))
-       .setMimeType(ContentService.MimeType.JSON);
-   }
-   ```
+1. Add a sheet tab named exactly `Team` with columns `PIN`, `Name`, `Role` (role is `admin` or `sales`), one row per person.
+2. In the Apps Script editor, the script authenticates every request by looking up the provided `key` against that Team sheet (see `authenticate_()`), and `doPost`'s `save_all` handler compares the incoming lead list against what's currently in the sheet — if any existing lead is missing (i.e. a delete) and the requester isn't `admin`, it's rejected with `{ok:false, error:'forbidden_delete'}` before anything is written.
+3. **Deploy → New deployment** (editing an existing deployment's version has proven unreliable for this project — always create a fresh deployment) → Web app → Execute as: Me → Who has access: Anyone → Deploy.
 
-3. As the very first line inside your existing `doGet(e)` and `doPost(e)` functions, add:
-
-   ```javascript
-   if (!checkAccessKey_(e)) return unauthorizedResponse_();
-   ```
-
-   Leave the rest of both functions untouched.
-4. **Deploy → Manage deployments → edit the existing deployment (pencil icon) → Version: New version → Deploy.** The `/exec` URL stays the same; this just pushes the new code live under it.
-
-Once that's live, the app will ask for the passcode on first load per device, remember it in that browser's `localStorage`, and send it with every request. Change the passcode any time by editing the `ACCESS_KEY` script property and redeploying — everyone with the old one gets locked out immediately.
+Once that's live, each person enters their own PIN on first load per device (remembered in that browser's `localStorage`), the app shows who's logged in in the header, and tapping that pill logs out (asks for the PIN again — useful for a shared device). Add/remove people or change roles anytime by editing the Team sheet directly — no redeploy needed, since it's read fresh on every request.
 
 ## Backend contract
 
-- `GET <APPS_SCRIPT_URL>` → `{ leads: [...] }`
-- `POST <APPS_SCRIPT_URL>` with `{ action: 'save_all', leads: [...] }` → saves the full leads array (every mutation in the app resaves the whole list; there's no per-lead endpoint).
+- `GET <APPS_SCRIPT_URL>?key=<pin>` → `{ leads: [...], user: { name, role } }` on success, or `{ ok: false, error: 'unauthorized' }` if the PIN doesn't match anyone in the Team sheet.
+- `POST <APPS_SCRIPT_URL>` with `{ action: 'save_all', leads: [...], key: <pin> }` → saves the full leads array (every mutation in the app resaves the whole list; there's no per-lead endpoint). Returns `{ ok: true, user: {...} }`, or `{ ok: false, error: 'forbidden_delete' }` if the payload implies a delete and the PIN's role isn't `admin`.
 
 `contactLog` is a JSON-stringified array on the wire and a real array in app state — conversion happens in `src/api.js`.

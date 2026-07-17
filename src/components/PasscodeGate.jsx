@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { validateAccessKey } from '../api.js';
 import { clearStoredKey, getStoredKey, setStoredKey } from '../utils/auth.js';
+import { useUser } from '../context/UserContext.jsx';
 
-// Gates the whole app behind a passcode that the Apps Script backend checks
-// server-side (see README "Locking the app down"). Nothing here is a secret —
-// the actual passcode lives only in the backend's Script Properties.
+// Gates the whole app behind a personal PIN that the Apps Script backend
+// checks server-side against the Team sheet (see README "Locking the app
+// down"). Nothing here is a secret — the actual PINs live only in the
+// backend's Team tab.
 export default function PasscodeGate({ children }) {
+  const { identify } = useUser();
   const [checking, setChecking] = useState(true);
   const [unlocked, setUnlocked] = useState(false);
   const [input, setInput] = useState('');
@@ -19,9 +22,13 @@ export default function PasscodeGate({ children }) {
       return;
     }
     validateAccessKey(stored)
-      .then((ok) => {
-        if (ok) setUnlocked(true);
-        else clearStoredKey();
+      .then((user) => {
+        if (user) {
+          identify(user);
+          setUnlocked(true);
+        } else {
+          clearStoredKey();
+        }
       })
       .catch(() => {
         // Network hiccup on a device that was previously unlocked — let them
@@ -30,6 +37,7 @@ export default function PasscodeGate({ children }) {
         setUnlocked(true);
       })
       .finally(() => setChecking(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const submit = async (e) => {
@@ -38,12 +46,13 @@ export default function PasscodeGate({ children }) {
     setSubmitting(true);
     setError('');
     try {
-      const ok = await validateAccessKey(input.trim());
-      if (ok) {
+      const user = await validateAccessKey(input.trim());
+      if (user) {
         setStoredKey(input.trim());
+        identify(user);
         setUnlocked(true);
       } else {
-        setError('Incorrect passcode.');
+        setError('Incorrect PIN.');
       }
     } catch {
       setError('Could not reach the server. Check your connection and try again.');
@@ -60,7 +69,7 @@ export default function PasscodeGate({ children }) {
       <form className="gate-card" onSubmit={submit}>
         <img src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" className="gate-logo" />
         <h1>Mako Moto CRM</h1>
-        <p className="hint">Enter the team passcode to continue.</p>
+        <p className="hint">Enter your personal PIN to continue.</p>
         <div className="field">
           <input
             type="password"
@@ -68,7 +77,7 @@ export default function PasscodeGate({ children }) {
             autoFocus
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Passcode"
+            placeholder="PIN"
           />
         </div>
         {error && (

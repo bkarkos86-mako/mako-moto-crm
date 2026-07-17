@@ -1,6 +1,7 @@
 import React from 'react';
 import ThemeToggle from './ThemeToggle.jsx';
 import { useLeads } from '../context/LeadsContext.jsx';
+import { useUser } from '../context/UserContext.jsx';
 
 const TABS = [
   { key: 'kanban', label: 'Pipeline' },
@@ -14,6 +15,7 @@ const TABS = [
 
 export default function Header({ view, setView }) {
   const { status, syncing } = useLeads();
+  const { currentUser, logout } = useUser();
   const offline = status === 'offline';
 
   return (
@@ -24,6 +26,19 @@ export default function Header({ view, setView }) {
           Mako Moto CRM
         </div>
         <div className="header-actions">
+          {currentUser && (
+            <button
+              type="button"
+              className="user-pill"
+              onClick={() => {
+                if (window.confirm('Switch user? You will need your PIN again.')) logout();
+              }}
+              title="Tap to switch user"
+            >
+              {currentUser.name}
+              {currentUser.role === 'admin' && <span className="admin-badge">Admin</span>}
+            </button>
+          )}
           <span className={`sync-pill ${offline ? 'offline' : ''}`}>
             <span className="dot" />
             {syncing ? 'Syncing…' : offline ? 'Offline — will sync' : 'Synced'}

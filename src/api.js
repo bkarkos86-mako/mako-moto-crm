@@ -2,14 +2,17 @@ import { BACKEND_URL } from './constants.js';
 import { getStoredKey } from './utils/auth.js';
 
 export class UnauthorizedError extends Error {}
+export class ForbiddenDeleteError extends Error {}
 
-// The Apps Script backend returns { ok: false, error: 'unauthorized' } when the
-// passcode is missing/wrong (once the doGet/doPost auth check has been added
-// there — see README). Older/unmodified backends never send `ok`, so this is a
-// no-op until that check exists.
+// The Apps Script backend returns { ok: false, error: '...' } for auth
+// failures. Older/unmodified backends never send `ok`, so this is a no-op
+// until the backend's auth check exists — see README.
 function assertAuthorized(data) {
   if (data && data.ok === false) {
-    if (data.error === 'unauthorized') throw new UnauthorizedError('Incorrect passcode');
+    if (data.error === 'unauthorized') throw new UnauthorizedError('Incorrect PIN');
+    if (data.error === 'forbidden_delete') {
+      throw new ForbiddenDeleteError('Only admins can delete leads');
+    }
     throw new Error(data.error || 'Backend rejected the request');
   }
 }
@@ -34,6 +37,8 @@ function deflate(lead) {
   return { ...lead, contactLog: JSON.stringify(lead.contactLog || []) };
 }
 
+// Returns { leads, user }. `user` is { name, role } once the backend's
+// per-person Team auth is live, or null against an older backend.
 export async function fetchLeads() {
   const key = getStoredKey();
   const url = key ? `${BACKEND_URL}?key=${encodeURIComponent(key)}` : BACKEND_URL;
@@ -42,9 +47,10 @@ export async function fetchLeads() {
   const data = await res.json();
   assertAuthorized(data);
   const list = Array.isArray(data) ? data : Array.isArray(data.leads) ? data.leads : [];
-  return list.map(inflate);
+  return { leads: list.map(inflate), user: data.user || null };
 }
 
+// Returns { user } for the same reason as fetchLeads.
 export async function saveAllLeads(leads) {
   const payload = { action: 'save_all', leads: leads.map(deflate), key: getStoredKey() };
   // Content-Type text/plain avoids a CORS preflight against the Apps Script
@@ -58,15 +64,16 @@ export async function saveAllLeads(leads) {
   if (!res.ok) throw new Error(`Save failed: ${res.status}`);
   const data = await res.json().catch(() => ({}));
   assertAuthorized(data);
-  return true;
+  return { user: data.user || null };
 }
 
-// Cheap round-trip used purely to confirm a passcode is accepted by the
-// backend before unlocking the app.
+// Cheap round-trip used to confirm a PIN is accepted by the backend before
+// unlocking the app. Returns the matched { name, role } or null.
 export async function validateAccessKey(key) {
   const url = `${BACKEND_URL}?key=${encodeURIComponent(key)}`;
   const res = await fetch(url, { method: 'GET' });
   if (!res.ok) throw new Error(`Validation request failed: ${res.status}`);
   const data = await res.json();
-  return !(data && data.ok === false);
+  if (data && data.ok === false) return null;
+  return data.user || null;
 }
