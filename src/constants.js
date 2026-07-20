@@ -2,8 +2,7 @@ export const BACKEND_URL =
   'https://script.google.com/macros/s/AKfycbxwdcNQZxqy1CofMiLW5_0UspuuNj3PrNONsXMXj5jS7L0YT9XVp8GPflXUlP-Y9W8/exec';
 
 // Vercel serverless function that sends outbound email (see email-api/).
-// Placeholder until the Vercel project is created and deployed.
-export const EMAIL_FUNCTION_URL = 'https://REPLACE-ME.vercel.app/api/send-email';
+export const EMAIL_FUNCTION_URL = 'https://mako-moto-crm.vercel.app/api/send-email';
 
 export const MODELS = [
   'Wraith',
