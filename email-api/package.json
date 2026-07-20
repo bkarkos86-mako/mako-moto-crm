@@ -1,0 +1,9 @@
+{
+  "name": "mako-moto-email-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vercel serverless function that sends outbound email for the Mako Moto CRM via SMTP.",
+  "dependencies": {
+    "nodemailer": "^6.9.0"
+  }
+}

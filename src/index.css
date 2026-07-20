@@ -1679,6 +1679,9 @@ table.leads-table tr {
   font-weight: 700;
   text-decoration: none;
   min-height: 40px;
+  border: none;
+  background: none;
+  font-family: inherit;
 }
 .quick-action.call {
   background: rgba(0, 212, 170, 0.15);

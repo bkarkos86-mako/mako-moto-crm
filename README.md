@@ -62,6 +62,14 @@ Setup:
 
 Once that's live, each person enters their own PIN on first load per device (remembered in that browser's `localStorage`), the app shows who's logged in in the header, and tapping that pill logs out (asks for the PIN again — useful for a shared device). Add/remove people or change roles anytime by editing the Team sheet directly — no redeploy needed, since it's read fresh on every request.
 
+## Sending email
+
+GitHub Pages can't hold an SMTP connection, so outbound email (the "Email" quick action in Lead Detail, and the compose modal it opens) goes through a small serverless function in `email-api/`, deployed separately on Vercel — see that folder's own setup steps. It connects to `mail.makomotoph.com` via Nodemailer, checks the sender's PIN against this same backend's Team sheet before sending (no separate secret to manage), and returns a specific error type (`auth_error`, `connection_error`, `rate_limited`, ...) that the frontend turns into a specific message instead of a generic failure.
+
+`src/constants.js`'s `EMAIL_FUNCTION_URL` points at that Vercel deployment — update it if the Vercel project ever moves.
+
+A successful send is logged to the lead's contact log as `Emailed: <subject>`, which also doubles as the daily-send counter (`src/utils/analytics.js`'s `emailsSentToday` counts today's `Emailed:` entries across all leads) — no separate counter/KV store needed. The compose modal warns once today's count passes 400, since shared hosting SMTP typically caps around 450–500/day.
+
 ## Backend contract
 
 - `GET <APPS_SCRIPT_URL>?key=<pin>` → `{ leads: [...], user: { name, role } }` on success, or `{ ok: false, error: 'unauthorized' }` if the PIN doesn't match anyone in the Team sheet.

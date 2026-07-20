@@ -54,3 +54,7 @@ export function getMailtoLink(contact, subject) {
   if (!seg) return null;
   return `mailto:${seg}${subject ? '?subject=' + encodeURIComponent(subject) : ''}`;
 }
+
+export function getEmailAddress(contact) {
+  return findEmailSegment(contact);
+}

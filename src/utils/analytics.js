@@ -67,3 +67,26 @@ export function teamActivity(leads) {
   }
   return Array.from(byPerson.values()).sort((a, b) => b.last7Days - a.last7Days);
 }
+
+// Sent-email tracking piggybacks on the ordinary contact log rather than a
+// separate counter/KV store — every send logs an entry starting with this
+// prefix, so "how many today" is just a count over data already synced.
+export const EMAIL_LOG_PREFIX = 'Emailed:';
+
+function isSameCalendarDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+export function emailsSentToday(leads) {
+  const now = new Date();
+  let count = 0;
+  for (const lead of leads) {
+    const log = Array.isArray(lead.contactLog) ? lead.contactLog : [];
+    for (const entry of log) {
+      if (!entry.text || !entry.text.startsWith(EMAIL_LOG_PREFIX)) continue;
+      const ts = new Date(entry.ts);
+      if (!isNaN(ts) && isSameCalendarDay(ts, now)) count += 1;
+    }
+  }
+  return count;
+}
